@@ -52,6 +52,119 @@ void print_http_request(const HttpRequest *request) {
   printf("-------------------------------\n\n");
 }
 
+void handle_http_request(int client_fd, const HttpRequest *request) {
+  char response[BUFFER_SIZE];
+  const char *html_content;
+  int status_code = 200; // Default: OK
+
+  printf("Handling request for path: %s\n", request->path);
+
+  // Basic routing based on the path
+  if (strcmp(request->path, "/") == 0 ||
+      strcmp(request->path, "/index.html") == 0) {
+    html_content = "<!DOCTYPE html>\n"
+                   "<html>\n"
+                   "<head>\n"
+                   "    <title>My HTTP Server</title>\n"
+                   "    <style>\n"
+                   "        body { font-family: Arial, sans-serif; margin: "
+                   "40px; line-height: 1.6; }\n"
+                   "        h1 { color: #333; }\n"
+                   "    </style>\n"
+                   "</head>\n"
+                   "<body>\n"
+                   "    <h1>Welcome to My HTTP Server</h1>\n"
+                   "    <p>This is the home page served by our custom HTTP "
+                   "server written in C.</p>\n"
+                   "    <ul>\n"
+                   "        <li><a href=\"/about\">About</a></li>\n"
+                   "        <li><a href=\"/contact\">Contact</a></li>\n"
+                   "    </ul>\n"
+                   "</body>\n"
+                   "</html>";
+  } else if (strcmp(request->path, "/about") == 0) {
+    html_content =
+        "<!DOCTYPE html>\n"
+        "<html>\n"
+        "<head>\n"
+        "    <title>About - My HTTP Server</title>\n"
+        "    <style>\n"
+        "        body { font-family: Arial, sans-serif; margin: 40px; "
+        "line-height: 1.6; }\n"
+        "        h1 { color: #333; }\n"
+        "    </style>\n"
+        "</head>\n"
+        "<body>\n"
+        "    <h1>About This Server</h1>\n"
+        "    <p>This is a simple HTTP server built from scratch in C.</p>\n"
+        "    <p>It demonstrates the basics of the HTTP protocol:</p>\n"
+        "    <ul>\n"
+        "        <li>Socket programming</li>\n"
+        "        <li>HTTP request parsing</li>\n"
+        "        <li>Response generation</li>\n"
+        "        <li>Basic routing</li>\n"
+        "    </ul>\n"
+        "    <p><a href=\"/\">Back to Home</a></p>\n"
+        "</body>\n"
+        "</html>";
+  } else if (strcmp(request->path, "/contact") == 0) {
+    html_content = "<!DOCTYPE html>\n"
+                   "<html>\n"
+                   "<head>\n"
+                   "    <title>Contact - My HTTP Server</title>\n"
+                   "    <style>\n"
+                   "        body { font-family: Arial, sans-serif; margin: "
+                   "40px; line-height: 1.6; }\n"
+                   "        h1 { color: #333; }\n"
+                   "    </style>\n"
+                   "</head>\n"
+                   "<body>\n"
+                   "    <h1>Contact</h1>\n"
+                   "    <p>This is a demo contact page.</p>\n"
+                   "    <p><a href=\"/\">Back to Home</a></p>\n"
+                   "</body>\n"
+                   "</html>";
+  } else {
+    // 404 Not Found for any other path
+    status_code = 404;
+    html_content =
+        "<!DOCTYPE html>\n"
+        "<html>\n"
+        "<head>\n"
+        "    <title>404 Not Found</title>\n"
+        "    <style>\n"
+        "        body { font-family: Arial, sans-serif; margin: 40px; "
+        "line-height: 1.6; }\n"
+        "        h1 { color: #CC0000; }\n"
+        "    </style>\n"
+        "</head>\n"
+        "<body>\n"
+        "    <h1>404 Not Found</h1>\n"
+        "    <p>The requested resource was not found on this server.</p>\n"
+        "    <p><a href=\"/\">Back to Home</a></p>\n"
+        "</body>\n"
+        "</html>";
+  }
+
+  // Create the HTTP response with appropriate status code
+  const char *status_text = (status_code == 200) ? "OK" : "Not Found";
+
+  // Format the HTTP response
+  int response_len =
+      snprintf(response, BUFFER_SIZE,
+               "HTTP/1.1 %d %s\r\n"
+               "Content-Type: text/html\r\n"
+               "Content-Length: %ld\r\n"
+               "Connection: close\r\n"
+               "\r\n"
+               "%s",
+               status_code, status_text, strlen(html_content), html_content);
+
+  // Send the response
+  write(client_fd, response, response_len);
+  printf("Response sent with status code %d\n", status_code);
+}
+
 int main() {
   int server_fd, client_fd;
   struct sockaddr_in server_addr, client_addr;
